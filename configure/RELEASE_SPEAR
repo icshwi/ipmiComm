@@ -1,0 +1,38 @@
+#RELEASE Location of external products
+# Run "gnumake clean uninstall install" in the application
+# top directory each time this file is changed.
+#include $(TOP)/RELEASE_SITE
+
+# =============================================================
+# Define location of module tree with respect to
+# EPICS_SITE_TOP
+# =============================================================
+#EPICS_MODULES=$(MODULES_SITE_TOP)
+include $(TOP)/../../configure/RELEASE-MODULES-master
+# =============================================================
+# Define epics version 
+# =============================================================
+BASE_MODULE_VERSION=
+
+# =============================================================
+# Define the version of modules needed by
+# IOC apps or other Support apps
+# =============================================================
+ASYN_MODULE_VERSION=asyn-R4-25-spear1
+IOCADMIN_MODULE_VERSION=iocStats-R3-1-12-spear1
+
+# ============================================================
+# Support module locations
+# ============================================================
+ASYN=$(EPICS_MODULES_TOP)/asyn/$(ASYN_MODULE_VERSION)
+IOCADMIN=$(EPICS_MODULES_TOP)/iocStats/$(IOCADMIN_MODULE_VERSION)
+
+# =================================================================
+# Define EPICS_BASE
+# EPICS_BASE usually appears last so other apps can override stuff:
+# =================================================================
+#EPICS_BASE=$(BASE_SITE_TOP)/$(BASE_MODULE_VERSION)
+include $(TOP)/../../configure/RELEASE-master
+
+
+
