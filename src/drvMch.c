@@ -24,7 +24,6 @@
 #include <picmgDef.h>
 
 #undef DEBUG 
-#define DEBUG
 
 #define PING_PERIOD  5
 
@@ -113,24 +112,21 @@ static int
 mchCommStart(MchSess mchSess, IpmiSess ipmiSess)
 {	
 uint8_t response[MSG_MAX_LENGTH] = { 0 };
-int     i, dbg = MCH_DBG( mchStat[mchSess->instance] );
+int     i;
 
-	if ( dbg )
-		printf("%s Connecting...\n", mchSess->name);
+	printf("%s Connecting...\n", mchSess->name);
 
 	mchSeqInit( ipmiSess );
 
 	if ( mchMsgGetChanAuth( mchSess, ipmiSess, response ) ) {
-		if ( dbg )
-			printf("%s Get Channel Authentication failed\n", mchSess->name);
+		printf("%s Get Channel Authentication failed\n", mchSess->name);
 		return -1;	
 	}
 
 	mchSetAuth( mchSess, ipmiSess, response[IPMI_RPLY_IMSG2_AUTH_CAP_AUTH_OFFSET] );
 
 	if ( mchMsgGetSess( mchSess, ipmiSess, response ) ) {
-		if ( dbg )
-			printf("%s Get Session failed\n", mchSess->name);
+		printf("%s Get Session failed\n", mchSess->name);
 		return -1;
 	}
 
@@ -143,8 +139,7 @@ int     i, dbg = MCH_DBG( mchStat[mchSess->instance] );
 		ipmiSess->str[i] = response[IPMI_RPLY_IMSG2_GET_SESS_CHALLENGE_STR_OFFSET + i];
 
 	if ( mchMsgActSess( mchSess, ipmiSess, response ) ) {
-		if ( dbg )
-			printf("%s Activate session failed\n", mchSess->name);
+		printf("%s Activate session failed\n", mchSess->name);
 		goto bail;;
 	}
 
@@ -158,8 +153,7 @@ int     i, dbg = MCH_DBG( mchStat[mchSess->instance] );
 
 	/* Need a non-hard-coded way to determine privelige level */
 	if ( mchMsgSetPriv( mchSess, ipmiSess, response, IPMI_MSG_PRIV_LEVEL_OPER ) ) {
-		if ( dbg )
-			printf("%s Set session privilege failed\n", mchSess->name);
+		printf("%s Set session privilege failed\n", mchSess->name);
 		goto bail;
 	}
 
@@ -362,6 +356,7 @@ int i;
 #ifdef DEBUG
 	printf("\nFRU field data type binary or unspecified. Add support!\n");
 #endif
+
 			field->length = 2*field->rlength;
 			if ( mchFruFieldCheckLength(field->length , FRU_FIELD_LENGTH_TYPE_CONVERTED ) )
 				return -1;
@@ -542,7 +537,7 @@ int        rval;
 	if ( 0 == (sizeInt = arrayToUint16( fru->size )) )
 		return 0;
 
-	if ( MCH_DBG( mchStat[inst] ) )
+	if ( MCH_DBG( mchStat[inst] ) >= MCH_DBG_MED )
 		printf("%s mchFruDataGet: FRU addr 0x%02x ID %i inventory info size %i\n", 
 		    mchSess->name, fru->sdr.addr, fru->sdr.fruId, sizeInt);
 
@@ -723,7 +718,7 @@ uint8_t   buff[MSG_MAX_LENGTH] = { 0 };
 
 	if ( (add != *addTs) || (del != *delTs) ) {
 
-		if ( MCH_DBG( mchStat[mchSess->instance] ) )
+		if ( MCH_DBG( mchStat[mchSess->instance] ) >= MCH_DBG_MED )
 			printf("%s SDR rep TS before: 0x%08x 0x%08x, after: 0x%08x 0x%08x\n", 
 			    mchSess->name, *addTs, *delTs, add, del);
 
@@ -806,6 +801,7 @@ uint8_t ownerChan = dassoc->ownerChan;
 printf("mchStoreAssocDevEntInfo: Found assoc dev rel entity owner 0x%02x contained id 0x%02x inst 0x%02x index %i entity point addr %i %i\n", 
     entity[*count].addr, entity[*count].entityId, entity[*count].entityInst, *count, (int)(&entity[*count]), (int)entity);
 #endif
+
 	}
 
 	(*count)++;
@@ -1288,10 +1284,12 @@ int m = 0, b = 0;
        	}     
 
 #ifdef DEBUG
+if ( l > 0 )
+printf("mchSdrFullSens: owner 0x%02x lun %i sdr number %i type 0x%02x, m %i, b %i, rexp %i bexp %i, is logical entity %i, %s\n", 
+	sdr->owner, sdr->lun, sdr->number, sdr->sensType, sdr->m, sdr->b, sdr->rexp, sdr->bexp, SDR_ENTITY_LOGICAL(sdr->entityInst), sdr->str);
+else
 printf("mchSdrFullSens: owner 0x%02x lun %i sdr number %i type 0x%02x, m %i, b %i, rexp %i bexp %i, is logical entity %i\n", 
 	sdr->owner, sdr->lun, sdr->number, sdr->sensType, sdr->m, sdr->b, sdr->rexp, sdr->bexp, SDR_ENTITY_LOGICAL(sdr->entityInst));
-if ( l > 0 )
-printf("string %s\n", sdr->str);
 #endif
 
 }
@@ -1318,7 +1316,7 @@ size_t  tmp = sens->readMsgLength; /* Initially set to requested msg length,
 
 	bits = response[IPMI_RPLY_IMSG2_SENSOR_ENABLE_BITS_OFFSET];
 	if ( IPMI_SENSOR_READING_DISABLED(bits) || IPMI_SENSOR_SCANNING_DISABLED(bits) ) {
-		if ( MCH_DBG( mchStat[mchData->mchSess->instance] ) )
+		if ( MCH_DBG( mchStat[mchData->mchSess->instance] ) >= MCH_DBG_LOW )
 			printf("%s mchGetSensorReadingStat: sensor %i reading/state unavailable or scanning disabled. Bits: %02x\n", 
 			    mchData->mchSess->name, sens->sdr.number, bits);
 		return -1;
@@ -1362,7 +1360,7 @@ size_t   sensReadMsgLength;
 	if ( IPMI_SENSOR_THRESH_IS_READABLE( IPMI_SDR_SENSOR_THRESH_ACCESS( sens->sdr.cap ) ) ) {
 
 		if (  mchMsgGetSensorThresholdsWrapper( mchData, response, sens ) ) {
-			if ( MCH_DBG( mchStat[mchData->mchSess->instance] ) )
+			if ( (MCH_DBG( mchStat[mchData->mchSess->instance]) >=  MCH_DBG_LOW) )
 				printf("%s mchGetSensorInfo: mchMsgGetSensorThresholds error, assume no thresholds are readable\n", mchData->mchSess->name);
 			return;
 		}
@@ -1436,9 +1434,9 @@ DevEntAssoc devEntAssoc;
 			if ( mchSdrFruDuplicate( mchSys, raw ) )
 				break;
 
-			if ( mchSys->fruCount > mchSys->fruCountMax ) {
+			if ( mchSys->fruCount >= mchSys->fruCountMax ) {
 				printf("ERROR: %s discovered %i FRUs but only allocated memory for %i.\n", 
-				    mchData->mchSess->name, mchSys->fruCount, mchSys->fruCountMax);
+				    mchData->mchSess->name, mchSys->fruCount, (int)mchSys->fruCountMax);
 				return -1;
 			}
 
@@ -1454,9 +1452,9 @@ DevEntAssoc devEntAssoc;
                         if ( mchSdrMgmtCtrlDuplicate( mchSys, raw ) )
                                 break;
 
-			if ( mchSys->mgmtCount > mchSys->mgmtCountMax ) {
+			if ( mchSys->mgmtCount >= mchSys->mgmtCountMax ) {
 				printf("ERROR: %s discovered %i MGMTs but only allocated memory for %i.\n", 
-				    mchData->mchSess->name, mchSys->mgmtCount, mchSys->mgmtCountMax);
+				    mchData->mchSess->name, mchSys->mgmtCount, (int)mchSys->mgmtCountMax);
 				return -1;
 			}
 
@@ -1517,6 +1515,25 @@ bail:
 	return dest;
 }
 
+/* First read of SDR to get record length */
+
+static int				  
+mchSdrGetLength(MchData mchData, uint8_t parm, uint8_t addr, SdrRep sdrRep, uint8_t *id, uint8_t *res, uint8_t *response)
+{
+uint8_t  offset = 0;
+int      size = 5; /* readSize = 5 because 5th byte is remaining record length; 0xFF reads entire record */
+int      err = 0;
+
+	while ( err <= 3 ) {
+		if ( (mchMsgGetSdrWrapper( mchData, response, id, res, offset, size, parm, addr )) ) {
+			err++;
+		}
+		else
+			return 0;
+	}
+	return -1;
+}
+
 /*
  * Read sensor data records. Call ipmiMsgGetSdr twice per record;
  * once to get record length, then to read record. This prevents timeouts,
@@ -1531,7 +1548,7 @@ MchSess  mchSess = mchData->mchSess;
 MchSys   mchSys  = mchData->mchSys;
 uint8_t  response[MSG_MAX_LENGTH] = { 0 };
 uint32_t sdrCount;
-uint8_t  id[2]  = { 0 };
+uint8_t  id[2]  = { 0 }, nextid[2]  = { 0 };
 uint8_t  res[2] = { 0 };
 Sensor   sens   = 0;
 uint8_t  offset = 0;
@@ -1539,7 +1556,7 @@ uint8_t  type   = 0;
 uint8_t *raw    = 0;
 int      size; /* SDR record read size (after header) */
 uint32_t sdrCount_i  = mchSys->sdrCount; /* Initial SDR count */
-int      rval = -1, err = 0, i, remainder = 0;
+int      rval = -1, err = 0, sdrFailedCount = 0, i, remainder = 0;
 
 	if ( mchSdrRepGetInfo( mchData, parm, addr, sdrRep, &sdrCount ) )
 		return rval;
@@ -1558,7 +1575,6 @@ int      rval = -1, err = 0, i, remainder = 0;
 		printf("mchSdrGetData: Error reserving SDR repository %s\n", mchSess->name);
 		goto bail;
 	}
-
 	res[0] = response[IPMI_RPLY_IMSG2_GET_SDR_RES_LSB_OFFSET];
 	res[1] = response[IPMI_RPLY_IMSG2_GET_SDR_RES_MSB_OFFSET];
 
@@ -1569,67 +1585,65 @@ int      rval = -1, err = 0, i, remainder = 0;
 			goto bail;
 		}
 
+		/* If failed to read this SDR, cannot get ID for subsequent units. */
+		if ( mchSdrGetLength( mchData, parm, addr, sdrRep, id, res, response) ) {
+			sdrFailedCount++;
+			printf("%s cannot read SDR %i nor subsequent SDRs\n", mchSess->name, i);
+			goto bail;
+		}
+		nextid[0]  = response[IPMI_RPLY_IMSG2_GET_SDR_NEXT_ID_LSB_OFFSET];
+		nextid[1]  = response[IPMI_RPLY_IMSG2_GET_SDR_NEXT_ID_MSB_OFFSET];
+
+		size = response[IPMI_RPLY_IMSG2_GET_SDR_DATA_OFFSET + SDR_LENGTH_OFFSET] + SDR_HEADER_LENGTH;
+		if ( size > SDR_MAX_LENGTH )
+			size = SDR_MAX_LENGTH;
+		type = response[IPMI_RPLY_IMSG2_GET_SDR_DATA_OFFSET + SDR_REC_TYPE_OFFSET];
+		if ( size > SDR_MAX_READ_SIZE ) {
+			remainder = size - SDR_MAX_READ_SIZE;
+			size = SDR_MAX_READ_SIZE;
+		}
+		err = 0;
 		offset = 0;
 
-		size = 5; /* readSize = 5 because 5th byte is remaining record length; 0xFF reads entire record */
-       		if ( (mchMsgGetSdrWrapper( mchData, response, id, res, offset, size, parm, addr )) ) {
-			i--;
-			if ( err++ > 5 ) {
-			        printf("mchSdrGetData: too many errors reading SDR for %s\n", mchSess->name);
+		while ( size > 0 ) {
+			if ( mchMsgGetSdrWrapper( mchData, response, id, res, offset, size, parm, addr ) ) {
+				/* If too many errors, break out of while loop, move on to next SDR */
+				if ( err++ > 3 )
+					break;
 				continue;
 			}
-		}
-		else {
-
-			size = response[IPMI_RPLY_IMSG2_GET_SDR_DATA_OFFSET + SDR_LENGTH_OFFSET] + SDR_HEADER_LENGTH;
-			if ( size > SDR_MAX_LENGTH )
-				size = SDR_MAX_LENGTH;
-			type = response[IPMI_RPLY_IMSG2_GET_SDR_DATA_OFFSET + SDR_REC_TYPE_OFFSET];
-
-			if ( size > SDR_MAX_READ_SIZE ) {
-				remainder = size - SDR_MAX_READ_SIZE;
+			memcpy( raw + offset, response + IPMI_RPLY_IMSG2_GET_SDR_DATA_OFFSET, size );
+			offset += size;
+			if ( remainder > SDR_MAX_READ_SIZE ) {
+				remainder = remainder - SDR_MAX_READ_SIZE;
 				size = SDR_MAX_READ_SIZE;
 			}
-
-			while ( size > 0 ) {
-				if ( mchMsgGetSdrWrapper( mchData, response, id, res, offset, size, parm, addr ) ) {
-					i--;
-					if ( err++ > 5 ) {
-						printf("mchSdrGetData: too many errors reading SDR for %s", mchSess->name);
-						continue;
-					}
-					break;
-				}
-
-				else {
-					memcpy( raw + + offset, response + IPMI_RPLY_IMSG2_GET_SDR_DATA_OFFSET, size );
-					offset += size;
-				}
-
-				if ( remainder > SDR_MAX_READ_SIZE ) {
-					remainder = remainder - SDR_MAX_READ_SIZE;
-					size = SDR_MAX_READ_SIZE;
-				}
-				else {
-					size = remainder;
-					remainder = 0;
-				}
+			else {
+				size = remainder;
+				remainder = 0;
 			}
-
-			if ( mchSdrStoreData( mchData, raw, type, addr, chan ) )
-				goto bail;
-			id[0]  = response[IPMI_RPLY_IMSG2_GET_SDR_NEXT_ID_LSB_OFFSET];
-			id[1]  = response[IPMI_RPLY_IMSG2_GET_SDR_NEXT_ID_MSB_OFFSET];
-
-			if ( arrayToUint16( id ) == SDR_ID_LAST_SENSOR ) // last record in SDR
-				break;
 		}
-       	}
 
+		/* If too many errors, move on to next SDR */
+		if ( err > 3 ) {
+			sdrFailedCount++;
+			continue;
+		}
+		if ( mchSdrStoreData( mchData, raw, type, addr, chan ) )
+			goto bail;
+
+		id[0] = nextid[0];
+		id[1] = nextid[1];
+
+		if ( arrayToUint16( id ) == SDR_ID_LAST_SENSOR ) /* last record in SDR */
+			break;
+       	}
 	mchSys->sdrCount += sdrCount;
 	rval = 0;
 
 bail:
+	if ( sdrFailedCount > 0 ) 
+	    printf("%s: failed to read %i SDRs due to too many read errors\n", mchSess->name, sdrFailedCount);
 
 	if ( raw )
 		free( raw );
@@ -1641,7 +1655,7 @@ mchSdrGetDataAll(MchData mchData)
 {
 MchSess  mchSess = mchData->mchSess;
 MchSys   mchSys  = mchData->mchSys;
-int      i, j, rval = 0; /* think about how to handle rval */
+int      i, j;
 Mgmt     mgmt;
 uint8_t  addr = 0;
 int      inst = mchSess->instance;
@@ -1654,8 +1668,8 @@ uint8_t  chan = 0;
 
 	/* First get BMC SDR Rep info */
 	if ( mchSdrGetData( mchData, IPMI_SDRREP_PARM_GET_SDR, IPMI_MSG_ADDR_BMC, chan, &mchSys->sdrRep ) ) {
-		printf("mchSdrGetData: Error in reading primary SDR\n");
-		return rval;
+		printf("mchSdrGetDataAll: Error in reading primary SDR\n");
+		return -1;
 	}
 	for ( i = 0; i < mchSys->mgmtCount; i++ ) {
 
@@ -1761,7 +1775,7 @@ uint8_t  chan = 0;
 		}
 	}
 
-	return rval;
+	return 0;
 }
 
 /* 
@@ -1827,8 +1841,8 @@ int     inst = mchSess->instance, i = 0, j = 0;
 				mchStatSet( inst, MCH_MASK_ONLN, MCH_MASK_ONLN );
 				cos = 1;
 			}
-			/* Every 60 seconds (while mch online) , set flag to check if system configuration has changed */
-			if ( i > 60/PING_PERIOD ) {
+			/* Every 30 seconds (while mch online) , set flag to check if system configuration has changed */
+			if ( i > 30/PING_PERIOD ) {
 				mchStatSet( inst, MCH_MASK_CNFG_CHK, MCH_MASK_CNFG_CHK );
 				i = 0;
 			}
@@ -1861,8 +1875,10 @@ int    inst   = mchData->mchSess->instance;
 
 	mchStatSet( inst, MCH_MASK_CNFG_CHK, 0 );
 
-	if ( MCH_INIT_NOT_DONE( mchStat[inst] ) )
+	if ( MCH_INIT_NOT_DONE( mchStat[inst] ) ) {
+		printf("discovered init not done, run mch cnf\n");
 		return mchCnfg( mchData, MCH_CNFG_NOT_INIT );
+	}
 
 	else if ( MCH_INIT_DONE( mchStat[inst] ) ) { 
 		if ( mchSdrRepTsDiff( mchData ) )
@@ -1943,7 +1959,7 @@ static void
 {
 void *cb;
 
-	printf("Identified %s to be %s. IPMI version %i.%i\n", mchData->mchSess->name, vendor, IPMI_VER_MSD( vers ), IPMI_VER_LSD( vers ));
+	printf("Identified %s to be %s. IPMI V%i.%i. Initializing...\n", mchData->mchSess->name, vendor, IPMI_VER_MSD( vers ), IPMI_VER_LSD( vers ));
 	mchData->mchSess->type = type;
 	if ( !(cb = registryFind( (void *)mchCbRegistryId, cbname )) ) {
 		printf("mchIdentify: ERROR for %s: failed to find callbacks %s\n", mchData->mchSess->name, cbname);
@@ -2005,12 +2021,12 @@ void    *mchcb = 0;
 			break;
 */
 		case MCH_MANUF_ID_SUPERMICRO:
-			if ( 0 == (mchcb = mchSetIdentity( mchData, "Supermicro", vers, MCH_TYPE_SUPERMICRO, "drvMchServerPcCb")) )
+			if ( 0 == (mchcb = mchSetIdentity( mchData, "Supermicro", vers, MCH_TYPE_SUPERMICRO, "drvMchSupermicroCb")) )
 				return -1;
 			break;
 
 		case MCH_MANUF_ID_ADVANTECH:
-			if ( 0 == (mchcb = mchSetIdentity( mchData, "Advantech", vers, MCH_TYPE_ADVANTECH, "drvMchServerPcCb")) )
+			if ( 0 == (mchcb = mchSetIdentity( mchData, "Advantech", vers, MCH_TYPE_ADVANTECH, "drvMchAdvantechCb")) )
 				return -1;
 			break;
 
@@ -2078,36 +2094,36 @@ Sensor  sens;
 		}
 	}
 
-#ifdef DEBUG
-int i;
-printf("mchSensorFruGetInstance:\n");
-for ( i = 0; i < s; i++ ) {
-	sens = &mchSys->sens[i];
-	if ( sens->fruIndex != -1 ) {
-		fru  = &mchSys->fru[sens->fruIndex];
-		printf("FRU sensor %s %i, type 0x%02x, inst %i, FRU addr 0x%02x, entId 0x%02x, entInst 0x%02x, "
-			"sens owner 0x%02x, entId 0x%02x  entInst 0x%02x recType %i fruId %i fruLkup %i fruIndex %i unavail %i\n",
-			sens->sdr.str, sens->sdr.number, sens->sdr.sensType, sens->instance, fru->sdr.addr, 
-			fru->sdr.entityId, fru->sdr.entityInst, sens->sdr.owner, sens->sdr.entityId, 
-			sens->sdr.entityInst, sens->sdr.recType, fru->id, mchSys->fruLkup[fru->id], 
-			sens->fruIndex, sens->unavail);
-	}
-	else if ( sens->mgmtIndex != -1 ) {
-		mgmt  = &mchSys->mgmt[sens->mgmtIndex];
-		printf("Mgmt sensor %s %i, type 0x%02x, inst %i, MGMT addr 0x%02x, entId 0x%02x, entInst 0x%02x, "
-			"sens owner 0x%02x, entId 0x%02x  entInst 0x%02x recType %i unavail %i\n",
-			sens->sdr.str, sens->sdr.number, sens->sdr.sensType, sens->instance, mgmt->sdr.addr, 
-			mgmt->sdr.entityId, mgmt->sdr.entityInst, sens->sdr.owner, sens->sdr.entityId, 
-			sens->sdr.entityInst, sens->sdr.recType, sens->unavail);
-	}
-	else
-		printf("Sensor %s %i, type 0x%02x, inst %i, entId 0x%02x  entInst 0x%02x recType %i, "
-			"no corresponding FRU or MGTM unavail %i\n",
-			sens->sdr.str, sens->sdr.number, sens->sdr.sensType, sens->instance, sens->sdr.entityId, 
-			sens->sdr.entityInst, sens->sdr.recType, sens->unavail);
-}
-#endif
+	if ( MCH_DBG( mchStat[mchData->mchSess->instance] ) >= MCH_DBG_MED ) {
 
+		int i;
+		printf("Sensor summary:\n");
+		for ( i = 0; i < s; i++ ) {
+			sens = &mchSys->sens[i];
+			if ( sens->fruIndex != -1 ) {
+				fru  = &mchSys->fru[sens->fruIndex];
+				printf("FRU sensor %s %i Type 0x%02x Inst %i FRUaddr 0x%02x Ent Id 0x%02x Inst 0x%02x "
+					"Sens owner 0x%02x EndId 0x%02x EndInst 0x%02x RecType %i FruId %i FruLkup %i FruIndex %i Unavail %i\n",
+					sens->sdr.str, sens->sdr.number, sens->sdr.sensType, sens->instance, fru->sdr.addr, 
+					fru->sdr.entityId, fru->sdr.entityInst, sens->sdr.owner, sens->sdr.entityId, 
+					sens->sdr.entityInst, sens->sdr.recType, fru->id, mchSys->fruLkup[fru->id], 
+					sens->fruIndex, sens->unavail);
+			}
+			else if ( sens->mgmtIndex != -1 ) {
+				mgmt  = &mchSys->mgmt[sens->mgmtIndex];
+				printf("Mgmt sensor %s %i Type 0x%02x inst %i MGMTaddr 0x%02x Ent Id 0x%02x Inst 0x%02x "
+					"Sens owner 0x%02x EntId 0x%02x EntInst 0x%02x RecType %i Unavail %i\n",
+					sens->sdr.str, sens->sdr.number, sens->sdr.sensType, sens->instance, mgmt->sdr.addr, 
+					mgmt->sdr.entityId, mgmt->sdr.entityInst, sens->sdr.owner, sens->sdr.entityId, 
+					sens->sdr.entityInst, sens->sdr.recType, sens->unavail);
+			}
+			else
+				printf("Sensor %s %i Type 0x%02x Inst %i EntId 0x%02x EntInst 0x%02x RecType %i "
+					"no corresponding FRU or MGTM unavail %i\n",
+					sens->sdr.str, sens->sdr.number, sens->sdr.sensType, sens->instance, sens->sdr.entityId, 
+					sens->sdr.entityInst, sens->sdr.recType, sens->unavail);
+		}
+	}
 }
 
 /*
@@ -2172,8 +2188,8 @@ int i;
 
 	mchSeqInit( mchData->ipmiSess );
 
-	/* Turn on debug messages during initial messages with device */
-	mchStatSet( inst, MCH_MASK_DBG, MCH_DBG_SET(MCH_DBG_LOW) );
+	/* Turn on debug messages during initial messages with device
+	mchStatSet( inst, MCH_MASK_DBG, MCH_DBG_SET(MCH_DBG_LOW) ); */
 
 	/* Initiate communication session with MCH */
 	if ( mchCommStart( mchSess, mchData->ipmiSess ) ) {
@@ -2207,9 +2223,6 @@ int i;
 	/* Moved to after mchIdentify so that max fru/mgmt counts are defined */
 	mchCnfgReset( mchData );
 
-	/* Turn off debug messages after initial messages with device */
-	mchStatSet( inst, MCH_MASK_DBG, MCH_DBG_SET(MCH_DBG_OFF) );
-
 	/* Intialize sensor and device counts to 0 */
 	mchSys->sdrCount = mchSys->sensCount = mchSys->fruCount = mchSys->mgmtCount = 0;
 
@@ -2239,6 +2252,8 @@ int i;
 
 	mchStatSet( inst, MCH_MASK_DBG, MCH_DBG_SET(MCH_DBG_OFF) );
 
+	printf("%s Initialization complete\n", mchSess->name);
+
 	return 0;
 
 bail:
@@ -2267,6 +2282,7 @@ IpmiSess ipmiSess = 0;
 MchSys   mchSys  = 0;
 char     taskName[MAX_NAME_LENGTH+10];
 int      inst;
+int      online = 0, tries = 0;
 
 	/* Allocate memory for MCH data structures */
 	if ( ! (mchData = calloc( 1, sizeof( *mchData ))) )
@@ -2312,7 +2328,6 @@ int      inst;
        	mchSess->timeout = ipmiSess->timeout = RPLY_TIMEOUT_SENDMSG_RPLY; /* Default, until determine type */
 	mchSess->session = 1;   /* Default: enable session with MCH */
 
-
 	/* For sensor record scanning */
 	scanIoInit( &drvSensorScan[inst] );
 
@@ -2320,20 +2335,24 @@ int      inst;
 	sprintf( taskName, "%s-PING", mch->name ); 
 	mchSess->pingThreadId = epicsThreadMustCreate( taskName, epicsThreadPriorityMedium, epicsThreadGetStackSize(epicsThreadStackMedium), mchPing, mch );
 
-	/* Wait for updated status from ping thread */ 
-	epicsThreadSleep( PING_PERIOD ); 
-
-	if (  MCH_ONLN( mchStat[inst] ) ) {
-		epicsMutexLock( mch->mutex );
-		mchCnfg( mchData, MCH_CNFG_INIT ); /* flag 1 = at init, before run-time */
-		epicsMutexUnlock( mch->mutex );
+	/* Wait for updated status from ping thread, then try a few times to connect */ 
+	while ( (online == 0) && (tries < 3) ) {
+		epicsThreadSleep( PING_PERIOD ); 
+		tries++;
+		if (  MCH_ONLN( mchStat[inst] ) ) {
+			epicsMutexLock( mch->mutex );
+			mchCnfg( mchData, MCH_CNFG_INIT ); /* flag 1 = at init, before run-time */
+			epicsMutexUnlock( mch->mutex );
+			online = 1;
+			break;
+		}
 	}
-	else {
+	if ( online == 0 ) {
 		/* Since device type is unknown, assume max number of FRU/MGMT devices
 		 * in order to support whichever EPICS DB is loaded for this device
 		 */
 		mchCnfgReset( mchData ); /* Initialize some data structs and values */
-		printf("No response from %s; cannot complete initialization\n",mch->name);
+		printf("No response from %s after %i tries; cannot complete initialization\n",mch->name, tries);
 	}
 }
 
