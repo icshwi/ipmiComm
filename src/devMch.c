@@ -712,12 +712,9 @@ int      s = 0, inst;
 			if ( sdr->str )
 				strcpy( pai->desc, sdr->str );
 
-			if ( sdr->recType == SDR_TYPE_FULL_SENSOR ) {
+			if ( sdr->recType == SDR_TYPE_FULL_SENSOR )
 				sensThresh( sdr, sens, &pai->lolo, &pai->llsv, &pai->low, &pai->lsv, 
 					    &pai->high, &pai->hsv, &pai->hihi, &pai->hhsv, pai->name );
-				pai->hopr = sensorConversion( sdr, sdr->maxReading, pai->name );
-				pai->lopr = sensorConversion( sdr, sdr->minReading, pai->name );
-			}	
 			sens->cnfg = 1;
 		}
 
