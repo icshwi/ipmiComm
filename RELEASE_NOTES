@@ -1,3 +1,24 @@
+R4.2.5: 09-Dec-2019 S. Hoobler
+          Comment out some informational warning messages
+
+R4.2.4: 17-Nov-2019 S. Hoobler
+		  In device initialization, fix which variable was being used to 
+			determine if device online. This did not cause functional problems,
+			just slightly misleading messages and a short delay.
+		  See Changelog for details.
+
+R4.2.3: 04-Oct-2019 S. Hoobler
+		  Bug fix--expected sensor read message length was overwitten,
+			causing one extra round of message timeouts during sensor reads.
+		  See Changelog for details.
+
+R4.2.2: 18-Sep-2019 S. Hoobler
+		  - Prevent timeous for ATCA FRU power info requests. See Changelog for details.
+
+R4.2.1:           12 Sept. 2019 E. Williams
+                  - build against asyn/R4.32-1.0.0 for upgrade to EPICS 7.0.2-1.1
+                  - Remove dependency on iocAdmin for test IOC
+
 R4.2.0:		  25-Oct-2018 S. Hoobler
 		  - Update to handle latest Advantech firmware
 		  - Misc fixes and minor changes, see ChangeLog for details
