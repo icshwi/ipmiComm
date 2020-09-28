@@ -1,3 +1,11 @@
+# DEPRECATION NOTICE
+This fork of the ipmiComm module is no longer in use. It will be archived.
+
+Latest code for ipmiComm is available here:
+
+https://github.com/slac-epics-modules/ipmiComm/
+
+
 ############################################################
 #
 #	IPMI module README 
